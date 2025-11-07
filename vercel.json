@@ -1,0 +1,20 @@
+{
+  "buildCommand": "next build",
+  "devCommand": "next dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
+  "env": {
+    "HUGGINGFACE_MODEL": "mistralai/Mistral-7B-Instruct-v0.2",
+    "HUGGINGFACE_EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2",
+    "VECTOR_SEARCH_TOP_K": "3",
+    "VECTOR_SEARCH_THRESHOLD": "0.7",
+    "REQUEST_TIMEOUT": "30000"
+  }
+}
