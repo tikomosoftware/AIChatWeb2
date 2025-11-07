@@ -58,7 +58,7 @@ ${contextText}
       throw new Error("Query cannot be empty");
     }
 
-    const prompt = this.createPrompt(query, context);
+    const contextText = context.join("\n\n");
     const timeout = options.timeout || this.defaultTimeout;
 
     try {
@@ -67,21 +67,28 @@ ${contextText}
         setTimeout(() => reject(new Error("Request timeout")), timeout);
       });
 
-      // Create the API call promise
-      const apiPromise = this.client.textGeneration({
+      // Create the API call promise using chatCompletion
+      const apiPromise = this.client.chatCompletion({
         model: this.modelName,
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: options.maxTokens || 512,
-          temperature: options.temperature || 0.7,
-          return_full_text: false,
-        },
+        messages: [
+          {
+            role: "system",
+            content: "あなたは親切なアシスタントです。提供されたコンテキスト情報を使用して、ユーザーの質問に日本語で正確に回答してください。"
+          },
+          {
+            role: "user",
+            content: `以下のコンテキスト情報を参考にして質問に答えてください。\n\nコンテキスト:\n${contextText}\n\n質問: ${query}`
+          }
+        ],
+        max_tokens: options.maxTokens || 512,
+        temperature: options.temperature || 0.7,
       });
 
       // Race between API call and timeout
       const response = await Promise.race([apiPromise, timeoutPromise]);
 
-      return response.generated_text.trim();
+      const generatedText = response.choices[0]?.message?.content || "";
+      return generatedText.trim();
     } catch (error) {
       // Handle rate limiting errors
       if (error instanceof Error) {

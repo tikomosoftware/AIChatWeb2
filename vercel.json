@@ -11,7 +11,7 @@
     }
   },
   "env": {
-    "HUGGINGFACE_MODEL": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    "HUGGINGFACE_MODEL": "meta-llama/Meta-Llama-3-8B-Instruct",
     "HUGGINGFACE_EMBEDDING_MODEL": "intfloat/multilingual-e5-large",
     "VECTOR_SEARCH_TOP_K": "3",
     "VECTOR_SEARCH_THRESHOLD": "0.7",
