@@ -147,6 +147,10 @@ export class EmbeddedVectorSearchService {
 
       // Sort by score (descending) and take top K
       results.sort((a, b) => b.score - a.score);
+      
+      // Log all scores for debugging
+      console.log(`All scores (top 5): ${results.slice(0, 5).map(r => r.score.toFixed(3)).join(', ')}`);
+      
       const topResults = results.slice(0, k);
 
       // Filter by score threshold and ensure document is not empty

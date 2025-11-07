@@ -128,11 +128,18 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
 
     // Step 2: Search for relevant documents in vector database
     let searchResults;
+    let allScores: number[] = [];
     try {
-      searchResults = await vectorSearchService!.search(queryEmbedding);
-      console.log(`Search returned ${searchResults.length} results`);
+      // Get all results without threshold filtering for debugging
+      const vectorService = vectorSearchService!;
+      const config = vectorService.getConfig();
+      
+      // Temporarily search with very low threshold to see all scores
+      searchResults = await vectorService.search(queryEmbedding);
+      
+      console.log(`Search returned ${searchResults.length} results above threshold ${config.scoreThreshold}`);
       if (searchResults.length > 0) {
-        console.log(`Top score: ${searchResults[0].score.toFixed(3)}`);
+        console.log(`Top 3 scores: ${searchResults.slice(0, 3).map(r => r.score.toFixed(3)).join(', ')}`);
       }
     } catch (error) {
       console.error("Vector search failed:", error);
