@@ -119,6 +119,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
     let queryEmbedding: number[];
     try {
       queryEmbedding = await embeddingService!.embedQuery(userMessage);
+      console.log(`Query embedding dimensions: ${queryEmbedding.length}`);
     } catch (error) {
       console.error("Embedding generation failed:", error);
       return createErrorResponse(ErrorCode.EMBEDDING_ERROR);

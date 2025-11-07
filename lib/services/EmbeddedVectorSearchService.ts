@@ -75,6 +75,11 @@ export class EmbeddedVectorSearchService {
         throw new Error('Invalid or empty embeddings data');
       }
 
+      // Log embedding dimensions for debugging
+      if (this.data.length > 0 && this.data[0].embedding) {
+        console.log(`Stored embedding dimensions: ${this.data[0].embedding.length}`);
+      }
+
       this.initialized = true;
       console.log(`Loaded ${this.data.length} embedded documents from ${loadedFrom}`);
     } catch (error) {
