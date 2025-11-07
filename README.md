@@ -1,6 +1,8 @@
-# AI Chatbot - RAG
+# 明治村FAQ AIチャットボット（技術検証用）
 
-RAG（Retrieval-Augmented Generation）ベースのAIチャットボットシステム。ChromaDBベクトルデータベースから関連情報を検索し、Hugging Faceの言語モデルを使用してユーザーの質問に回答します。
+RAG（Retrieval-Augmented Generation）技術を使用した明治村FAQ AIチャットボット。博物館明治村の公式サイトに掲載されているFAQ情報を学習データとして、来訪者の質問に自動で回答するシステムの技術検証プロジェクトです。
+
+**注意:** 本プロジェクトは技術検証・学習目的のデモアプリケーションです。博物館明治村様の公式サイトではありません。
 
 ## 技術スタック
 
@@ -111,6 +113,13 @@ npm run dev
 
 ブラウザで [http://localhost:3000](http://localhost:3000) を開いてアプリケーションにアクセスできます。
 
+## 機能
+
+- **AIチャット**: 明治村に関する質問に自動で回答
+- **サンプル質問**: 初回表示時に使いやすいサンプル質問を提示
+- **ヘルプページ**: 技術スタック、使い方、データ作成方法の詳細説明
+- **レスポンシブデザイン**: モバイル・タブレット・デスクトップに対応
+
 ## プロジェクト構造
 
 ```
@@ -118,8 +127,12 @@ npm run dev
 ├── app/                    # Next.js App Router
 │   ├── api/               # API Routes
 │   ├── components/        # Reactコンポーネント
+│   │   ├── Header.tsx     # ヘッダーコンポーネント
+│   │   ├── Footer.tsx     # フッターコンポーネント
+│   │   └── ChatInterface.tsx  # チャットインターフェース
+│   ├── help/              # ヘルプページ
 │   ├── layout.tsx         # ルートレイアウト
-│   └── page.tsx           # ホームページ
+│   └── page.tsx           # ホームページ（チャット）
 ├── lib/                   # ユーティリティとサービス
 ├── chroma_db/            # ChromaDBデータベース（gitignore）
 ├── .env.local            # 環境変数（gitignore）
@@ -237,6 +250,14 @@ npm run dev
 - ChromaDB Cloudへの移行を検討してください
 - [chroma.com](https://www.trychroma.com/)でクラウドインスタンスを作成
 - 環境変数でChromaDB CloudのURLを設定
+
+## データソース
+
+本プロジェクトは、博物館明治村様の公式サイト（https://www.meijimura.com/guide/beginner/）に掲載されているFAQ情報を技術検証・学習目的で使用させていただいております。
+
+## 謝辞
+
+貴重な情報を公開していただいている博物館明治村様に深く感謝申し上げます。本プロジェクトは非公式のデモアプリケーションであり、商用利用は行っておりません。
 
 ## ライセンス
 

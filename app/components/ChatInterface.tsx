@@ -101,16 +101,77 @@ export default function ChatInterface() {
     }
   };
 
+  const sampleQuestions = [
+    '明治村の見どころは何ですか？',
+    '入村チケットについて教えてください',
+    '開村時間を教えてください',
+    '駐車場はありますか？',
+    'ペットを連れて入れますか？',
+  ];
+
   return (
-    <div className="flex flex-col h-screen max-w-4xl mx-auto bg-white shadow-lg">
+    <div className="flex flex-col h-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
       {/* ヘッダー */}
-      <div className="bg-blue-600 text-white p-4 shadow-md">
-        <h1 className="text-xl font-bold">AI チャットボット</h1>
-        <p className="text-sm text-blue-100">RAGベースの質問応答システム</p>
+      <div className="bg-blue-600 text-white p-4 rounded-t-lg shadow-md">
+        <h1 className="text-xl font-bold">明治村FAQ AIチャットボット</h1>
+        <p className="text-sm text-blue-100">明治村に関する質問にお答えします</p>
       </div>
 
-      {/* メッセージリスト */}
-      <MessageList messages={chatState.messages} />
+      {/* メッセージリストまたはウェルカムメッセージ */}
+      {chatState.messages.length === 0 ? (
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                ようこそ！
+              </h2>
+              <p className="text-gray-600">
+                明治村に関する質問をお気軽にどうぞ
+              </p>
+            </div>
+
+            <div className="bg-blue-50 rounded-lg p-6">
+              <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
+                <span className="text-blue-600 mr-2">💡</span>
+                サンプル質問
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                以下のような質問をお試しください：
+              </p>
+              <div className="space-y-2">
+                {sampleQuestions.map((question, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSendMessage(question)}
+                    disabled={chatState.isLoading}
+                    className="w-full text-left px-4 py-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="text-gray-700">{question}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+              <p className="text-sm text-yellow-800">
+                <strong>注意:</strong> このチャットボットは技術検証用です。
+                正確な情報は
+                <a 
+                  href="https://www.meijimura.com/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 underline mx-1"
+                >
+                  公式サイト
+                </a>
+                でご確認ください。
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <MessageList messages={chatState.messages} />
+      )}
 
       {/* ローディングインジケーター */}
       {chatState.isLoading && (
