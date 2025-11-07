@@ -33,6 +33,7 @@ async function initializeServices(): Promise<void> {
 
   if (!embeddingService) {
     embeddingService = new EmbeddingService();
+    console.log(`Using embedding model: ${embeddingService.getModelName()}`);
   }
 
   if (!llmService) {
