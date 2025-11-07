@@ -130,6 +130,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
     let searchResults;
     try {
       searchResults = await vectorSearchService!.search(queryEmbedding);
+      console.log(`Search returned ${searchResults.length} results`);
+      if (searchResults.length > 0) {
+        console.log(`Top score: ${searchResults[0].score.toFixed(3)}`);
+      }
     } catch (error) {
       console.error("Vector search failed:", error);
       return createErrorResponse(ErrorCode.VECTOR_DB_ERROR);
@@ -138,6 +142,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
     // Step 3: Check similarity scores and filter results
     if (searchResults.length === 0) {
       // No relevant data found - return as a special informational response
+      console.log("No results above threshold");
       return NextResponse.json({
         response: ERROR_MESSAGES[ErrorCode.NO_RELEVANT_DATA],
         sources: [],
