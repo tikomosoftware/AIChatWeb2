@@ -107,7 +107,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
       await initializeServices();
     } catch (error) {
       console.error("Service initialization failed:", error);
-      return createErrorResponse(ErrorCode.VECTOR_DB_ERROR);
+      console.error("Error details:", error instanceof Error ? error.message : String(error));
+      console.error("Stack trace:", error instanceof Error ? error.stack : 'No stack trace');
+      return createErrorResponse(
+        ErrorCode.VECTOR_DB_ERROR,
+        `サービスの初期化に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`
+      );
     }
 
     // Step 1: Vectorize the query

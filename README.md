@@ -140,6 +140,16 @@ npm run dev
 - Vercelアカウント（[vercel.com](https://vercel.com)で無料登録）
 - GitHubリポジトリにプロジェクトをプッシュ済み
 
+### デプロイ前のチェックリスト
+
+デプロイする前に、以下を確認してください：
+
+- [ ] `lib/data/embeddings.json`ファイルが存在し、有効なデータが含まれている
+- [ ] `embeddings.json`ファイルがgitにコミットされている
+- [ ] ローカルで`npm run build`が成功する
+- [ ] Hugging Face APIキーを取得済み
+- [ ] `.env.local`ファイルで環境変数が正しく設定されている
+
 ### デプロイ手順
 
 1. **Vercelにログイン**
@@ -181,24 +191,47 @@ npm run dev
 
 ### トラブルシューティング
 
+**「データベースへの接続に失敗しました」エラーが表示される場合:**
+1. `lib/data/embeddings.json`ファイルが存在するか確認
+2. ファイルが有効なJSON形式で、データが含まれているか確認
+3. ファイルがgitにコミットされ、デプロイに含まれているか確認
+4. デプロイ後、`https://your-app.vercel.app/api/health`にアクセスして診断情報を確認
+5. Vercelの関数ログで詳細なエラーメッセージを確認（Dashboard → Project → Logs）
+6. ローカルで`npm run build`を実行してビルドエラーがないか確認
+
+**診断エンドポイントの使用方法:**
+- デプロイ後、`/api/health`エンドポイントにアクセスすると、以下の情報が表示されます：
+  - 環境変数の設定状況
+  - `embeddings.json`ファイルの存在と場所
+  - ファイルサイズとレコード数
+  - エラーメッセージ（ある場合）
+
 **ビルドエラーが発生する場合:**
 - ローカルで`npm run build`を実行してエラーを確認
 - 環境変数が正しく設定されているか確認
+- `lib/data/embeddings.json`ファイルが存在するか確認
 
 **APIエラーが発生する場合:**
 - Hugging Face APIキーが正しく設定されているか確認
+- Vercelの環境変数設定を確認（Dashboard → Project → Settings → Environment Variables）
 - Vercelの関数ログを確認（Dashboard → Project → Logs）
 
 **タイムアウトエラーが発生する場合:**
 - Vercel Pro以上のプランでは、関数の最大実行時間を延長可能
 - `vercel.json`の`maxDuration`設定を確認
+- `REQUEST_TIMEOUT`環境変数を調整
 
 ### データベースについて
 
 このプロジェクトは、埋め込みデータ方式を使用しています:
-- ChromaDBのデータはビルド時にJSONファイルとして埋め込まれます
+- ベクトルデータは`lib/data/embeddings.json`ファイルに保存されています
 - 追加のデータベースサーバーは不要です
-- データ更新時は再デプロイが必要です
+- データ更新時は`embeddings.json`を更新して再デプロイが必要です
+
+**重要な注意事項:**
+- `lib/data/embeddings.json`ファイルが存在し、有効なデータが含まれていることを確認してください
+- ファイルサイズが大きい場合（>50MB）、Vercelのデプロイ制限に注意してください
+- データが空の場合、「データベースへの接続に失敗しました」というエラーが表示されます
 
 **将来的にデータ量が増加した場合:**
 - ChromaDB Cloudへの移行を検討してください
