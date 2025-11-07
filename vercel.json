@@ -11,7 +11,7 @@
     }
   },
   "env": {
-    "HUGGINGFACE_MODEL": "microsoft/Phi-3-mini-4k-instruct",
+    "HUGGINGFACE_MODEL": "HuggingFaceH4/zephyr-7b-beta",
     "HUGGINGFACE_EMBEDDING_MODEL": "intfloat/multilingual-e5-large",
     "VECTOR_SEARCH_TOP_K": "3",
     "VECTOR_SEARCH_THRESHOLD": "0.7",
