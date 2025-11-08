@@ -1,31 +1,48 @@
-# ChromaDB Data Directory
+# ChromaDB データディレクトリ（参考用）
 
-This directory should contain your pre-existing ChromaDB vector database.
+**注意**: このディレクトリは参考用として残されています。本番環境（Vercel）では使用されていません。
 
-## Required Structure
+## 実装経緯
 
-Your ChromaDB data should be placed in this directory. The typical structure includes:
-- Collection metadata
-- Vector embeddings
-- Document data
+当初はこのディレクトリにChromaDBベクトルデータベースを配置する予定でしたが、Vercelのサーバーレス環境ではChromaDB（SQLiteベース）が動作しないことが判明しました。そのため、ChromaDBデータを`lib/data/embeddings.json`にエクスポートし、カスタムのベクトル検索サービスを実装する方式に変更しました。
 
-## Setup Instructions
+このディレクトリは、以下の目的で残されています：
+- ローカル開発時の参考
+- データ作成プロセスの記録
+- 将来的にChromaDB Cloudなどの外部サービスを使用する場合の参考
 
-1. If you have an existing ChromaDB database, copy the contents to this directory
-2. Ensure the collection name matches the one configured in your application
-3. The database will be accessed in read-only mode when deployed to Vercel
+## 必要な構造
 
-## Important Notes
+ChromaDBデータをこのディレクトリに配置してください。一般的な構造には以下が含まれます：
+- コレクションメタデータ
+- ベクトル埋め込み
+- ドキュメントデータ
 
-- This directory is excluded from git (see .gitignore)
-- You need to manually place your ChromaDB data here before running the application
-- For local development, ensure this directory contains valid ChromaDB data
-- For Vercel deployment, the chroma_db folder needs to be included in your deployment (remove from .gitignore or use a different approach)
+## セットアップ手順
 
-## Vercel Deployment Consideration
+1. 既存のChromaDBデータベースがある場合は、その内容をこのディレクトリにコピーしてください
+2. コレクション名がアプリケーションで設定されているものと一致していることを確認してください
+3. Vercelにデプロイされた場合、データベースは読み取り専用モードでアクセスされます
 
-Since Vercel uses serverless functions, you have two options:
-1. **Include the database in deployment**: Remove `chroma_db/` from .gitignore and commit the database (if size permits)
-2. **Use external ChromaDB server**: Host ChromaDB separately and connect via HTTP client
+## 重要な注意事項
 
-For this implementation, we assume option 1 (including the database in the project).
+- このディレクトリはgitから除外されています（.gitignoreを参照）
+- アプリケーションを実行する前に、手動でChromaDBデータをここに配置する必要があります
+- ローカル開発の場合、このディレクトリに有効なChromaDBデータが含まれていることを確認してください
+- Vercelデプロイの場合、chroma_dbフォルダをデプロイに含める必要があります（.gitignoreから削除するか、別のアプローチを使用してください）
+
+## 現在の実装方式
+
+Vercelデプロイでは、以下の方式を採用しています：
+- ChromaDBデータを`lib/data/embeddings.json`にエクスポート
+- カスタムの`EmbeddedVectorSearchService`でベクトル検索を実装
+- メモリ上でコサイン類似度計算を実行
+
+## 将来的な拡張オプション
+
+データ量が増加した場合、以下のオプションを検討できます：
+1. **ChromaDB Cloud**: マネージドChromaDBサービスを使用
+2. **Pinecone**: 専用のベクトルデータベースサービス
+3. **Supabase Vector**: PostgreSQLベースのベクトル検索
+
+その場合、このディレクトリの構造が参考になります。

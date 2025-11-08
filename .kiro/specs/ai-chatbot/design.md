@@ -2,11 +2,30 @@
 
 ## 概要
 
-RAGベースのAIチャットボットは、Next.jsフレームワークを使用したWebアプリケーションとして実装されます。ユーザーの質問を受け取り、ChromaDBベクトルデータベースから関連情報を検索し、Hugging Faceの言語モデルを使用して回答を生成します。Vercelのサーバーレス環境にデプロイされます。
+RAGベースのAIチャットボットは、Next.jsフレームワークを使用したWebアプリケーションとして実装されます。ユーザーの質問を受け取り、ベクトルデータベースから関連情報を検索し、Hugging Faceの言語モデルを使用して回答を生成します。Vercelのサーバーレス環境にデプロイされます。
+
+## 実装経緯と設計変更
+
+### 当初の設計（ChromaDB使用）
+当初はChromaDBをベクトルデータベースとして使用する予定でした。ローカル開発環境では`chroma_db`フォルダにChromaDBデータを配置し、正常に動作していました。
+
+### 設計変更の理由
+Vercelへのデプロイ時に、以下の問題が判明しました：
+- Vercelのサーバーレス環境では、ChromaDBのようなファイルベースのデータベースを直接ホストできない
+- ChromaDBはSQLiteを使用しており、サーバーレス関数の制約により動作しない
+- 読み取り専用モードでも、ChromaDBクライアントの初期化に失敗する
+
+### 最終的な実装方式
+上記の問題を解決するため、以下の方式に変更しました：
+1. ChromaDBデータを`embeddings.json`ファイルにエクスポート
+2. カスタムの`EmbeddedVectorSearchService`を実装
+3. JSON形式のベクトルデータをメモリに読み込み、コサイン類似度で検索
+
+この方式により、Vercelのサーバーレス環境でも問題なく動作するようになりました。
 
 ## アーキテクチャ
 
-### システム構成図
+### 当初の設計（参考）
 
 ```mermaid
 graph TB
@@ -23,24 +42,45 @@ graph TB
     UI --> User
 ```
 
+### 最終実装のシステム構成図
+
+```mermaid
+graph TB
+    User[ユーザー] --> UI[Next.js UI]
+    UI --> API[API Routes]
+    API --> Embedding[Embedding Service]
+    API --> VectorSearch[Embedded Vector Search Service]
+    API --> LLM[Hugging Face LLM]
+    
+    VectorSearch --> JSON[(embeddings.json)]
+    Embedding --> API
+    VectorSearch --> API
+    LLM --> API
+    API --> UI
+    UI --> User
+```
+
 ### 技術スタック
 
 - **フロントエンド**: Next.js 14 (App Router), React, TypeScript, Tailwind CSS
 - **バックエンド**: Next.js API Routes (サーバーレス関数)
-- **ベクトルデータベース**: ChromaDB (既存のchroma_dbフォルダを使用)
-- **埋め込みモデル**: Hugging Face Embeddings
+- **ベクトルデータ**: JSON形式の埋め込みデータ（`lib/data/embeddings.json`）
+- **ベクトル検索**: カスタム実装（`EmbeddedVectorSearchService`）
+- **埋め込みモデル**: Hugging Face Embeddings (sentence-transformers)
 - **LLM**: Hugging Face Inference API (無料枠)
 - **デプロイ**: Vercel
 - **言語**: TypeScript
 
+**注意**: `chroma_db`フォルダは参考として残されていますが、本番環境では使用されていません。
+
 ### デプロイアーキテクチャ
 
-Vercelのサーバーレス環境では、ChromaDBのような永続的なデータベースを直接ホストできないため、以下のアプローチを採用します：
+Vercelのサーバーレス環境に最適化された実装：
 
-1. **オプション1（推奨）**: ChromaDBデータをビルド時に含め、読み取り専用として使用
-2. **オプション2**: 外部のChromaDBサーバーをホスト（別途必要）
-
-本設計では、オプション1を採用し、既存のchroma_dbフォルダをプロジェクトに含めます。
+1. **ベクトルデータの配置**: `lib/data/embeddings.json`ファイルをプロジェクトに含める
+2. **検索方式**: メモリ上でコサイン類似度計算を実行
+3. **スケーラビリティ**: データサイズが50MB以下であれば問題なく動作
+4. **将来の拡張**: データ量が増加した場合は、ChromaDB CloudやPineconeなどの外部サービスへの移行を検討
 
 ## コンポーネントとインターフェース
 
@@ -118,14 +158,18 @@ interface ChatResponse {
 
 ### サービス層
 
-#### 1. VectorSearchService
+#### 1. EmbeddedVectorSearchService
 ```typescript
-class VectorSearchService {
-  private client: ChromaClient;
-  private collection: Collection;
+class EmbeddedVectorSearchService {
+  private data: EmbeddingData[];
+  private config: VectorSearchConfig;
+  private initialized: boolean;
   
   async initialize(): Promise<void>;
-  async search(query: string, topK: number): Promise<SearchResult[]>;
+  async search(queryEmbedding: number[], topK?: number): Promise<SearchResult[]>;
+  private cosineSimilarity(a: number[], b: number[]): number;
+  getConfig(): VectorSearchConfig;
+  isInitialized(): boolean;
 }
 
 interface SearchResult {
@@ -133,7 +177,19 @@ interface SearchResult {
   metadata: Record<string, any>;
   score: number;
 }
+
+interface EmbeddingData {
+  id: string;
+  document: string;
+  embedding: number[];
+  metadata: Record<string, any>;
+}
 ```
+
+**実装の特徴**:
+- `embeddings.json`ファイルからベクトルデータを読み込み
+- コサイン類似度を使用して検索を実行
+- 閾値（`scoreThreshold`）以上のスコアを持つ結果のみを返す
 
 #### 2. EmbeddingService
 ```typescript
@@ -254,14 +310,19 @@ HUGGINGFACE_MODEL=mistralai/Mistral-7B-Instruct-v0.2
 # Hugging Face (Embeddings用)
 HUGGINGFACE_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
 
-# ChromaDB
-CHROMA_DB_PATH=./chroma_db
+# ChromaDB（参考：現在は使用されていません）
+# CHROMA_DB_PATH=./chroma_db
+# 注意: 将来的にChromaDB Cloudなどの外部サービスを使用する場合に備えて残しています
 
 # App Config
 VECTOR_SEARCH_TOP_K=3
 VECTOR_SEARCH_THRESHOLD=0.7
 REQUEST_TIMEOUT=30000
 ```
+
+**環境変数の説明**:
+- `CHROMA_DB_PATH`: 現在は使用されていませんが、将来的な拡張のために定義を残しています
+- 実際のベクトルデータは`lib/data/embeddings.json`から読み込まれます
 
 ## セキュリティ考慮事項
 
@@ -280,14 +341,25 @@ REQUEST_TIMEOUT=30000
 ## デプロイ手順
 
 1. プロジェクトをGitHubにプッシュ
-2. Vercelでプロジェクトをインポート
-3. 環境変数を設定
-4. chroma_dbフォルダがプロジェクトに含まれていることを確認
+2. `lib/data/embeddings.json`ファイルが存在し、gitにコミットされていることを確認
+3. Vercelでプロジェクトをインポート
+4. 環境変数を設定（`HUGGINGFACE_API_KEY`は必須）
 5. デプロイを実行
+6. デプロイ後、`/api/health`エンドポイントで動作確認
 
 ## 制限事項
 
-1. ChromaDBは読み取り専用（新しいデータの追加不可）
-2. Hugging Face無料枠のレート制限
-3. Vercelのサーバーレス関数の実行時間制限（10秒 - Hobby、60秒 - Pro）
-4. 会話履歴はセッション内のみ（永続化なし）
+1. **ベクトルデータの更新**: `embeddings.json`ファイルを更新して再デプロイが必要
+2. **データサイズ**: Vercelのデプロイ制限により、50MB以下を推奨
+3. **Hugging Face無料枠**: レート制限あり（1時間あたり約1000リクエスト）
+4. **実行時間制限**: Vercelのサーバーレス関数の実行時間制限（10秒 - Hobby、60秒 - Pro）
+5. **会話履歴**: セッション内のみ（永続化なし）
+6. **ChromaDB**: ローカル開発では参考として`chroma_db`フォルダが存在しますが、本番環境では使用されません
+
+## 将来的な拡張案
+
+データ量が増加した場合の対応策：
+1. **ChromaDB Cloud**: マネージドChromaDBサービスを使用
+2. **Pinecone**: 専用のベクトルデータベースサービス
+3. **Supabase Vector**: PostgreSQLベースのベクトル検索
+4. **分割デプロイ**: 複数の`embeddings.json`ファイルに分割して読み込み

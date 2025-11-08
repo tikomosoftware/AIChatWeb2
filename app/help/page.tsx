@@ -130,8 +130,9 @@ export default function HelpPage() {
               <div className="border rounded-lg p-4">
                 <h3 className="font-semibold text-gray-900 mb-2">データベース</h3>
                 <ul className="text-sm text-gray-700 space-y-1">
-                  <li>• ChromaDB (ベクトルDB)</li>
                   <li>• JSON形式の埋め込みデータ</li>
+                  <li>• カスタムベクトル検索実装</li>
+                  <li>• (参考) ChromaDB</li>
                 </ul>
               </div>
             </div>
@@ -145,22 +146,63 @@ export default function HelpPage() {
             </p>
             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
               <div>
-                <h4 className="font-semibold text-gray-900 mb-1">1. 埋め込み生成</h4>
+                <h4 className="font-semibold text-gray-900 mb-1">1. 埋め込み生成（事前処理）</h4>
                 <p className="text-sm text-gray-700">
-                  FAQデータをベクトル化し、ChromaDBに保存
+                  FAQデータをベクトル化し、JSON形式で保存（embeddings.json）
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold text-gray-900 mb-1">2. 類似検索</h4>
                 <p className="text-sm text-gray-700">
-                  ユーザーの質問に関連する情報をベクトル検索で取得
+                  ユーザーの質問をベクトル化し、コサイン類似度で関連情報を検索
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold text-gray-900 mb-1">3. 回答生成</h4>
                 <p className="text-sm text-gray-700">
-                  検索結果を元にLLMが自然な回答を生成
+                  検索結果を元にHugging Face LLMが自然な回答を生成
                 </p>
+              </div>
+            </div>
+          </section>
+
+          {/* 実装方式について */}
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">実装方式について</h2>
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded mb-4">
+              <h3 className="font-semibold text-blue-900 mb-2">設計変更の経緯</h3>
+              <p className="text-sm text-blue-800 mb-2">
+                当初はChromaDBをベクトルデータベースとして使用する予定でしたが、
+                Vercelのサーバーレス環境ではChromaDB（SQLiteベース）が動作しないことが判明しました。
+              </p>
+              <p className="text-sm text-blue-800">
+                そのため、ChromaDBデータをJSON形式にエクスポートし、
+                カスタムのベクトル検索サービスを実装する方式に変更しました。
+              </p>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-1">現在の実装</h4>
+                <ul className="text-sm text-gray-700 space-y-1 ml-4">
+                  <li>• ベクトルデータ: <code className="bg-gray-100 px-1 rounded">lib/data/embeddings.json</code></li>
+                  <li>• 検索方式: メモリ上でコサイン類似度計算</li>
+                  <li>• デプロイ: Vercelのサーバーレス環境で動作</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-1">メリット</h4>
+                <ul className="text-sm text-gray-700 space-y-1 ml-4">
+                  <li>• 外部データベース不要</li>
+                  <li>• デプロイが簡単</li>
+                  <li>• 無料で運用可能</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-1">制限事項</h4>
+                <ul className="text-sm text-gray-700 space-y-1 ml-4">
+                  <li>• データサイズ: 50MB以下を推奨</li>
+                  <li>• データ更新: 再デプロイが必要</li>
+                </ul>
               </div>
             </div>
           </section>
@@ -172,9 +214,16 @@ export default function HelpPage() {
               <li>明治村公式サイトのFAQページからデータを収集</li>
               <li>質問と回答のペアをJSON形式で構造化</li>
               <li>Sentence Transformersで各テキストをベクトル化</li>
-              <li>ChromaDBにベクトルデータを保存</li>
-              <li>検証用にJSON形式でエクスポート</li>
+              <li>ChromaDBにベクトルデータを保存（ローカル開発用）</li>
+              <li>Vercelデプロイ用にJSON形式でエクスポート（embeddings.json）</li>
             </ol>
+            <div className="mt-4 p-3 bg-gray-50 rounded text-sm text-gray-600">
+              <p>
+                <strong>参考:</strong> データ作成スクリプトは
+                <code className="bg-gray-100 px-1 rounded mx-1">CreationOfChromeDBforAIReference</code>
+                フォルダに格納されています。
+              </p>
+            </div>
           </section>
 
           {/* 謝辞 */}

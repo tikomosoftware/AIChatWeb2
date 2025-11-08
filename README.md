@@ -63,10 +63,10 @@ cp .env.example .env.local
 - 推奨モデル: `sentence-transformers/all-MiniLM-L6-v2`（軽量で高速）
 - その他の選択肢: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`（多言語対応）
 
-**CHROMA_DB_PATH**
-- ChromaDBデータベースフォルダのパスを指定します
-- プロジェクトルートからの相対パスまたは絶対パスを指定可能
-- 既存のChromaDBデータベースを使用する場合は、そのパスを指定してください
+**CHROMA_DB_PATH** (現在は未使用)
+- 将来的な拡張のために定義を残していますが、現在は使用されていません
+- 実際のベクトルデータは`lib/data/embeddings.json`から読み込まれます
+- ChromaDB Cloudなどの外部サービスを使用する場合に備えて残しています
 
 **VECTOR_SEARCH_TOP_K**
 - ベクトル検索で取得する関連ドキュメントの数を指定します
@@ -84,26 +84,31 @@ cp .env.example .env.local
 - Hugging Faceの無料枠では応答に時間がかかる場合があります
 - 推奨値: 30000（30秒）
 
-### 3. ChromaDBデータベースの配置
+### 3. ベクトルデータの配置
 
-既存のChromaDBデータベース（`chroma_db`フォルダ）をプロジェクトルートに配置してください。
+**重要**: 本プロジェクトは`lib/data/embeddings.json`ファイルを使用してベクトル検索を行います。
 
-#### ChromaDBデータベースの要件
+#### ベクトルデータの要件
 
-- プロジェクトルートに`chroma_db`フォルダが必要です
-- 既存のChromaDBデータベースを使用する場合は、そのフォルダをコピーしてください
-- データベースは読み取り専用モードで使用されます
+- `lib/data/embeddings.json`ファイルが必要です
+- このファイルには、事前にベクトル化されたFAQデータが含まれています
+- ファイルはgitにコミットされており、デプロイ時に自動的に含まれます
 
-#### .gitignoreの設定について
+#### ChromaDBフォルダについて（参考情報）
 
-デフォルトでは、`.gitignore`ファイルで`chroma_db/`がコメントアウトされています。
+プロジェクトルートに`chroma_db`フォルダが存在しますが、これは**参考用**です：
+- ローカル開発時にChromaDBを使用していた名残です
+- Vercelのサーバーレス環境ではChromaDBが動作しないため、現在は使用されていません
+- `embeddings.json`ファイルは、このChromaDBデータからエクスポートされたものです
+- 将来的にChromaDB Cloudなどの外部サービスを使用する場合の参考として残しています
 
-**ローカル開発のみの場合:**
-- `.gitignore`の`# chroma_db/`行のコメントを外して、データベースをgit管理から除外できます
+#### データ更新方法
 
-**Vercelにデプロイする場合:**
-- `chroma_db`フォルダをgitにコミットする必要があります（コメントアウトのまま）
-- データベースサイズが大きい場合は、外部のChromaDBサーバーを使用することを検討してください
+FAQデータを更新する場合：
+1. `CreationOfChromeDBforAIReference`フォルダ内のスクリプトを参照
+2. 新しいFAQデータをベクトル化
+3. `lib/data/embeddings.json`ファイルを更新
+4. 再デプロイ
 
 ### 4. 開発サーバーの起動
 
@@ -236,7 +241,9 @@ npm run dev
 
 ### データベースについて
 
-このプロジェクトは、埋め込みデータ方式を使用しています:
+#### 現在の実装方式
+
+このプロジェクトは、**埋め込みデータ方式**を使用しています：
 - ベクトルデータは`lib/data/embeddings.json`ファイルに保存されています
 - 追加のデータベースサーバーは不要です
 - データ更新時は`embeddings.json`を更新して再デプロイが必要です
@@ -246,10 +253,20 @@ npm run dev
 - ファイルサイズが大きい場合（>50MB）、Vercelのデプロイ制限に注意してください
 - データが空の場合、「データベースへの接続に失敗しました」というエラーが表示されます
 
-**将来的にデータ量が増加した場合:**
-- ChromaDB Cloudへの移行を検討してください
-- [chroma.com](https://www.trychroma.com/)でクラウドインスタンスを作成
-- 環境変数でChromaDB CloudのURLを設定
+#### ChromaDBについて（参考情報）
+
+当初はChromaDBを使用する予定でしたが、Vercelのサーバーレス環境では動作しないことが判明しました：
+- ChromaDBはSQLiteベースのため、サーバーレス関数では使用できません
+- そのため、ChromaDBデータを`embeddings.json`にエクスポートして使用しています
+- `chroma_db`フォルダは参考として残されていますが、本番環境では使用されていません
+
+#### 将来的にデータ量が増加した場合
+
+以下のオプションを検討してください：
+1. **ChromaDB Cloud**: [chroma.com](https://www.trychroma.com/)でクラウドインスタンスを作成
+2. **Pinecone**: 専用のベクトルデータベースサービス
+3. **Supabase Vector**: PostgreSQLベースのベクトル検索
+4. **分割デプロイ**: 複数の`embeddings.json`ファイルに分割
 
 ## データソース
 
