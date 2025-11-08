@@ -69,6 +69,32 @@ export default function HelpPage() {
               <li>AIが関連するFAQ情報を検索し、回答を生成します</li>
               <li>回答が不十分な場合は、質問を言い換えて再度お試しください</li>
             </ol>
+            
+            <div className="mt-6 bg-green-50 border-l-4 border-green-400 p-4 rounded">
+              <h3 className="font-semibold text-green-900 mb-2 flex items-center">
+                <span className="mr-2">🎤</span>
+                音声入力機能
+              </h3>
+              <p className="text-sm text-green-800 mb-3">
+                マイクボタンをクリックして、音声で質問を入力できます。
+              </p>
+              <div className="space-y-2 text-sm text-green-800">
+                <div>
+                  <strong>対応ブラウザ:</strong> Chrome、Edge、Safari（iOS 14.5以降）
+                </div>
+                <div>
+                  <strong>使い方:</strong>
+                  <ol className="list-decimal list-inside ml-4 mt-1 space-y-1">
+                    <li>メッセージ入力欄の横のマイクボタンをクリック</li>
+                    <li>マイクへのアクセス許可を求められたら「許可」を選択</li>
+                    <li>質問を話す（話し終わると自動的に送信されます）</li>
+                  </ol>
+                </div>
+                <div className="text-xs text-green-700 mt-2">
+                  ※ HTTPSまたはlocalhostでのみ動作します
+                </div>
+              </div>
+            </div>
           </section>
 
           {/* サンプル質問 */}
@@ -110,6 +136,7 @@ export default function HelpPage() {
                   <li>• React 18</li>
                   <li>• TypeScript</li>
                   <li>• Tailwind CSS</li>
+                  <li>• Web Speech API（音声入力）</li>
                 </ul>
               </div>
               <div className="border rounded-lg p-4">
