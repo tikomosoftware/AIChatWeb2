@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { EmbeddedVectorSearchService } from "@/lib/services/EmbeddedVectorSearchService";
 import { EmbeddingService } from "@/lib/services/EmbeddingService";
 import { LLMService } from "@/lib/services/LLMService";
+import { ChatHistoryService } from "@/lib/services/ChatHistoryService";
 import { ErrorCode, ERROR_MESSAGES } from "@/lib/types/errors";
 
 // Request interface
@@ -186,6 +187,18 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
       }
       
       return createErrorResponse(ErrorCode.LLM_ERROR);
+    }
+
+    // Step 5: Save chat history (non-blocking, errors logged only)
+    try {
+      const historyService = new ChatHistoryService();
+      // Execute asynchronously without awaiting to avoid blocking response
+      historyService.saveChat(userMessage, generatedResponse).catch(error => {
+        console.error('Failed to save chat history:', error);
+      });
+    } catch (error) {
+      // Log initialization errors but don't affect the response
+      console.error('Failed to initialize chat history service:', error);
     }
 
     // Return successful response
