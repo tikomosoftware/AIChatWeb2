@@ -25,10 +25,25 @@ export class EmbeddingService {
     }
 
     try {
-      const response = await this.client.featureExtraction({
-        model: this.modelName,
-        inputs: text,
+      // Hugging Face inference library has a known issue with multi-byte characters (e.g., Japanese)
+      // when constructing HTTP requests. We use the raw fetch API to avoid the ByteString error.
+      const key = process.env.HUGGINGFACE_API_KEY;
+      const apiUrl = `https://api-inference.huggingface.co/pipeline/feature-extraction/${this.modelName}`;
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ inputs: text }),
       });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Hugging Face API error (${res.status}): ${errorText}`);
+      }
+
+      const response = await res.json();
 
       // The response is already an array of numbers (embedding vector)
       return response as number[];
