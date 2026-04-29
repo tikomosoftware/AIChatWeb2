@@ -1,5 +1,3 @@
-import { HfInference } from "@huggingface/inference";
-
 export interface GenerateResponseOptions {
   maxTokens?: number;
   temperature?: number;
@@ -7,7 +5,7 @@ export interface GenerateResponseOptions {
 }
 
 export class LLMService {
-  private client: HfInference;
+  private apiKey: string;
   private modelName: string;
   private defaultTimeout: number;
 
@@ -17,37 +15,14 @@ export class LLMService {
       throw new Error("Hugging Face API key is required");
     }
 
-    this.client = new HfInference(key);
+    this.apiKey = key;
     this.modelName = modelName || process.env.HUGGINGFACE_MODEL || "Qwen/Qwen2.5-7B-Instruct";
     this.defaultTimeout = parseInt(process.env.REQUEST_TIMEOUT || "30000");
   }
 
   /**
-   * Create a prompt template with context and query
-   * @param query - User's question
-   * @param context - Retrieved documents from vector search
-   * @returns Formatted prompt string
-   */
-  private createPrompt(query: string, context: string[]): string {
-    const contextText = context.join("\n\n");
-    
-    return `以下のコンテキスト情報を使用して、ユーザーの質問に日本語で回答してください。
-コンテキストに関連する情報がない場合は、その旨を伝えてください。
-
-コンテキスト:
-${contextText}
-
-質問: ${query}
-
-回答:`;
-  }
-
-  /**
    * Generate a response using the LLM
-   * @param query - User's question
-   * @param context - Retrieved documents from vector search
-   * @param options - Optional generation parameters
-   * @returns Generated response text
+   * Uses raw fetch to avoid ByteString errors with multi-byte characters (Japanese, etc.)
    */
   async generateResponse(
     query: string,
@@ -62,40 +37,53 @@ ${contextText}
     const timeout = options.timeout || this.defaultTimeout;
 
     try {
-      // Create a timeout promise
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error("Request timeout")), timeout);
       });
 
-      // Create the API call promise using chatCompletion
-      const apiPromise = this.client.chatCompletion({
-        model: this.modelName,
-        messages: [
-          {
-            role: "system",
-            content: "あなたはワンダーランド東京の親切なFAQアシスタントです。提供されたコンテキスト情報のみを使用して、ユーザーの質問に日本語で正確に回答してください。コンテキストに含まれない情報については「申し訳ございませんが、その情報は持ち合わせておりません」と回答してください。"
-          },
-          {
-            role: "user",
-            content: `以下のコンテキスト情報を参考にして質問に答えてください。\n\nコンテキスト:\n${contextText}\n\n質問: ${query}`
-          }
-        ],
-        max_tokens: options.maxTokens || 512,
-        temperature: options.temperature || 0.7,
+      const apiUrl = `https://api-inference.huggingface.co/models/${this.modelName}/v1/chat/completions`;
+      const apiPromise = fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: this.modelName,
+          messages: [
+            {
+              role: "system",
+              content: "あなたはワンダーランド東京の親切なFAQアシスタントです。提供されたコンテキスト情報のみを使用して、ユーザーの質問に日本語で正確に回答してください。コンテキストに含まれない情報については「申し訳ございませんが、その情報は持ち合わせておりません」と回答してください。"
+            },
+            {
+              role: "user",
+              content: `以下のコンテキスト情報を参考にして質問に答えてください。\n\nコンテキスト:\n${contextText}\n\n質問: ${query}`
+            }
+          ],
+          max_tokens: options.maxTokens || 512,
+          temperature: options.temperature || 0.7,
+        }),
       });
 
-      // Race between API call and timeout
-      const response = await Promise.race([apiPromise, timeoutPromise]);
+      const res = await Promise.race([apiPromise, timeoutPromise]);
 
-      const generatedText = response.choices[0]?.message?.content || "";
-      return generatedText.trim();
-    } catch (error) {
-      // Handle rate limiting errors
-      if (error instanceof Error) {
-        if (error.message.includes("rate limit") || error.message.includes("429")) {
+      if (!res.ok) {
+        const errorText = await res.text();
+        if (errorText.includes("rate limit") || res.status === 429) {
           throw new Error("RATE_LIMIT_ERROR");
         }
-        if (error.message.includes("timeout")) {
+        throw new Error(`Hugging Face API error (${res.status}): ${errorText}`);
+      }
+
+      const response = await res.json();
+      const generatedText = response.choices?.[0]?.message?.content || "";
+      return generatedText.trim();
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "RATE_LIMIT_ERROR") {
+          throw error;
+        }
+        if (error.message.includes("timeout") || error.message === "Request timeout") {
           throw new Error("TIMEOUT_ERROR");
         }
       }
@@ -105,9 +93,6 @@ ${contextText}
     }
   }
 
-  /**
-   * Get the current model name
-   */
   getModelName(): string {
     return this.modelName;
   }
