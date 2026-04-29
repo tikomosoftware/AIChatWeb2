@@ -7,7 +7,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="text-xl font-bold text-gray-900 hover:text-gray-700 transition-colors">
-              明治村FAQ AIチャットボット
+              ワンダーランド東京 FAQ AIチャットボット
             </Link>
             <span className="ml-3 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
               技術検証用
@@ -19,6 +19,12 @@ export default function Header() {
               className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
             >
               チャット
+            </Link>
+            <Link 
+              href="/llm-compare" 
+              className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+            >
+              モデル比較
             </Link>
             <Link 
               href="/help" 

@@ -102,19 +102,19 @@ export default function ChatInterface() {
   };
 
   const sampleQuestions = [
-    '明治村の見どころは何ですか？',
-    '入村チケットについて教えてください',
-    '開村時間を教えてください',
-    '駐車場はありますか？',
-    'ペットを連れて入れますか？',
+    'ワンダーランド東京の営業時間を教えてください',
+    '入場チケットの料金はいくらですか？',
+    '人気のアトラクションは何ですか？',
+    '園内で食事はできますか？',
+    'ペットを連れて入場できますか？',
   ];
 
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
       {/* ヘッダー */}
       <div className="bg-blue-600 text-white p-4 rounded-t-lg shadow-md">
-        <h1 className="text-xl font-bold">明治村FAQ AIチャットボット</h1>
-        <p className="text-sm text-blue-100">明治村に関する質問にお答えします</p>
+        <h1 className="text-xl font-bold">ワンダーランド東京 FAQ AIチャットボット</h1>
+        <p className="text-sm text-blue-100">ワンダーランド東京に関する質問にお答えします</p>
       </div>
 
       {/* メッセージリストまたはウェルカムメッセージ */}
@@ -126,7 +126,7 @@ export default function ChatInterface() {
                 ようこそ！
               </h2>
               <p className="text-gray-600">
-                明治村に関する質問をお気軽にどうぞ
+                ワンダーランド東京に関する質問をお気軽にどうぞ
               </p>
             </div>
 
@@ -154,17 +154,8 @@ export default function ChatInterface() {
 
             <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
               <p className="text-sm text-yellow-800">
-                <strong>注意:</strong> このチャットボットは技術検証用です。
-                正確な情報は
-                <a 
-                  href="https://www.meijimura.com/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 underline mx-1"
-                >
-                  公式サイト
-                </a>
-                でご確認ください。
+                <strong>注意:</strong> このチャットボットは技術検証用のデモです。
+                ワンダーランド東京は架空のテーマパークです。
               </p>
             </div>
           </div>

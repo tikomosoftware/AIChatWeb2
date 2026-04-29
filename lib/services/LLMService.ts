@@ -18,7 +18,7 @@ export class LLMService {
     }
 
     this.client = new HfInference(key);
-    this.modelName = modelName || process.env.HUGGINGFACE_MODEL || "mistralai/Mistral-7B-Instruct-v0.2";
+    this.modelName = modelName || process.env.HUGGINGFACE_MODEL || "Qwen/Qwen2.5-7B-Instruct";
     this.defaultTimeout = parseInt(process.env.REQUEST_TIMEOUT || "30000");
   }
 
@@ -73,7 +73,7 @@ ${contextText}
         messages: [
           {
             role: "system",
-            content: "あなたは親切なアシスタントです。提供されたコンテキスト情報を使用して、ユーザーの質問に日本語で正確に回答してください。"
+            content: "あなたはワンダーランド東京の親切なFAQアシスタントです。提供されたコンテキスト情報のみを使用して、ユーザーの質問に日本語で正確に回答してください。コンテキストに含まれない情報については「申し訳ございませんが、その情報は持ち合わせておりません」と回答してください。"
           },
           {
             role: "user",

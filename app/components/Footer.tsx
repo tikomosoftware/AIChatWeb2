@@ -7,18 +7,10 @@ export default function Footer() {
             <strong className="text-red-600">※ 本サイトは技術検証用のデモアプリケーションです</strong>
           </p>
           <p className="text-xs text-gray-500">
-            博物館明治村様の公式サイトではありません。FAQデータは学習・検証目的で使用させていただいております。
+            ワンダーランド東京は架空のテーマパークです。FAQデータはAIによって生成された架空の情報です。
           </p>
           <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} 技術検証プロジェクト | データ提供元: 
-            <a 
-              href="https://www.meijimura.com/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 ml-1"
-            >
-              博物館明治村
-            </a>
+            © {new Date().getFullYear()} RAG技術検証プロジェクト
           </p>
         </div>
       </div>
