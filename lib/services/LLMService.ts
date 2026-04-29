@@ -1,3 +1,5 @@
+import { HfInference } from "@huggingface/inference";
+
 export interface GenerateResponseOptions {
   maxTokens?: number;
   temperature?: number;
@@ -5,7 +7,7 @@ export interface GenerateResponseOptions {
 }
 
 export class LLMService {
-  private apiKey: string;
+  private client: HfInference;
   private modelName: string;
   private defaultTimeout: number;
 
@@ -15,15 +17,11 @@ export class LLMService {
       throw new Error("Hugging Face API key is required");
     }
 
-    this.apiKey = key;
+    this.client = new HfInference(key);
     this.modelName = modelName || process.env.HUGGINGFACE_MODEL || "Qwen/Qwen2.5-7B-Instruct";
     this.defaultTimeout = parseInt(process.env.REQUEST_TIMEOUT || "30000");
   }
 
-  /**
-   * Generate a response using the LLM
-   * Uses native https module to avoid Next.js fetch patching issues with multi-byte characters
-   */
   async generateResponse(
     query: string,
     context: string[],
@@ -37,8 +35,11 @@ export class LLMService {
     const timeout = options.timeout || this.defaultTimeout;
 
     try {
-      const apiUrl = `https://api-inference.huggingface.co/models/${this.modelName}/v1/chat/completions`;
-      const bodyStr = JSON.stringify({
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Request timeout")), timeout);
+      });
+
+      const apiPromise = this.client.chatCompletion({
         model: this.modelName,
         messages: [
           {
@@ -54,61 +55,16 @@ export class LLMService {
         temperature: options.temperature || 0.7,
       });
 
-      const responseData = await new Promise<string>((resolve, reject) => {
-        const https = require("https");
-        const url = new URL(apiUrl);
+      const response = await Promise.race([apiPromise, timeoutPromise]);
 
-        const timer = setTimeout(() => {
-          req.destroy();
-          reject(new Error("Request timeout"));
-        }, timeout);
-
-        const req = https.request(
-          {
-            hostname: url.hostname,
-            path: url.pathname,
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${this.apiKey}`,
-              "Content-Type": "application/json",
-              "Content-Length": Buffer.byteLength(bodyStr, "utf-8"),
-            },
-          },
-          (res: any) => {
-            let data = "";
-            res.on("data", (chunk: string) => (data += chunk));
-            res.on("end", () => {
-              clearTimeout(timer);
-              if (res.statusCode >= 200 && res.statusCode < 300) {
-                resolve(data);
-              } else {
-                if (res.statusCode === 429 || data.includes("rate limit")) {
-                  reject(new Error("RATE_LIMIT_ERROR"));
-                } else {
-                  reject(new Error(`Hugging Face API error (${res.statusCode}): ${data}`));
-                }
-              }
-            });
-          }
-        );
-
-        req.on("error", (err: Error) => {
-          clearTimeout(timer);
-          reject(err);
-        });
-        req.write(bodyStr);
-        req.end();
-      });
-
-      const response = JSON.parse(responseData);
-      const generatedText = response.choices?.[0]?.message?.content || "";
+      const generatedText = response.choices[0]?.message?.content || "";
       return generatedText.trim();
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === "RATE_LIMIT_ERROR") {
-          throw error;
+        if (error.message.includes("rate limit") || error.message.includes("429")) {
+          throw new Error("RATE_LIMIT_ERROR");
         }
-        if (error.message.includes("timeout") || error.message === "Request timeout") {
+        if (error.message.includes("timeout")) {
           throw new Error("TIMEOUT_ERROR");
         }
       }
