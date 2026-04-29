@@ -11,7 +11,7 @@ export class EmbeddingService {
     }
 
     this.client = new HfInference(key);
-    this.modelName = modelName || process.env.HUGGINGFACE_EMBEDDING_MODEL || "sentence-transformers/all-MiniLM-L6-v2";
+    this.modelName = modelName || process.env.HUGGINGFACE_EMBEDDING_MODEL || "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
   }
 
   async embedQuery(text: string): Promise<number[]> {

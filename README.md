@@ -39,8 +39,8 @@ cp .env.example .env.local
 
 | 変数名 | 説明 | デフォルト値 |
 |--------|------|--------------|
-| `HUGGINGFACE_MODEL` | 使用するLLMモデル | `mistralai/Mistral-7B-Instruct-v0.2` |
-| `HUGGINGFACE_EMBEDDING_MODEL` | 使用する埋め込みモデル | `sentence-transformers/all-MiniLM-L6-v2` |
+| `HUGGINGFACE_MODEL` | 使用するLLMモデル | `Qwen/Qwen2.5-7B-Instruct` |
+| `HUGGINGFACE_EMBEDDING_MODEL` | 使用する埋め込みモデル | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` |
 | `CHROMA_DB_PATH` | ChromaDBデータベースのパス | `./chroma_db` |
 | `VECTOR_SEARCH_TOP_K` | ベクトル検索で取得する上位K件 | `3` |
 | `VECTOR_SEARCH_THRESHOLD` | 類似度スコアの閾値（0.0-1.0） | `0.7` |
@@ -55,13 +55,13 @@ cp .env.example .env.local
 
 **HUGGINGFACE_MODEL**
 - 回答生成に使用するLLMモデルを指定します
-- 推奨モデル: `mistralai/Mistral-7B-Instruct-v0.2`（日本語対応）
-- その他の選択肢: `meta-llama/Llama-2-7b-chat-hf`, `google/flan-t5-large`
+- 推奨モデル: `Qwen/Qwen2.5-7B-Instruct`（日本語対応）
+- その他の選択肢: `meta-llama/Llama-3.1-8B-Instruct`, `deepseek-ai/DeepSeek-R1`
 
 **HUGGINGFACE_EMBEDDING_MODEL**
 - テキストのベクトル化に使用するモデルを指定します
-- 推奨モデル: `sentence-transformers/all-MiniLM-L6-v2`（軽量で高速）
-- その他の選択肢: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`（多言語対応）
+- 推奨モデル: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`（多言語対応・384次元）
+- その他の選択肢: `sentence-transformers/all-MiniLM-L6-v2`（英語特化・軽量）
 
 **CHROMA_DB_PATH** (現在は未使用)
 - 将来的な拡張のために定義を残していますが、現在は使用されていません
@@ -77,7 +77,7 @@ cp .env.example .env.local
 - 類似度スコアの閾値を指定します（0.0-1.0の範囲）
 - この値以下のスコアのドキュメントは除外されます
 - 値が高いほど厳密なマッチングになります
-- 推奨値: 0.6-0.8
+- 推奨値: 0.3-0.5（日本語FAQの場合）、0.6-0.8（英語FAQの場合）
 
 **REQUEST_TIMEOUT**
 - APIリクエストのタイムアウト時間をミリ秒で指定します
@@ -105,10 +105,12 @@ cp .env.example .env.local
 #### データ更新方法
 
 FAQデータを更新する場合：
-1. `CreationOfChromeDBforAIReference`フォルダ内のスクリプトを参照
-2. 新しいFAQデータをベクトル化
-3. `lib/data/embeddings.json`ファイルを更新
-4. 再デプロイ
+1. `scripts/faq-data.json` を編集
+2. `npx tsx scripts/generate-embeddings.ts` でベクトル化を実行
+3. `lib/data/embeddings.json` が更新される
+4. コミットして再デプロイ
+
+詳細は `docs/FAQ_DATA_UPDATE_GUIDE.md` を参照してください。
 
 ### 4. 開発サーバーの起動
 
@@ -220,10 +222,10 @@ npm run dev
    
    オプション（デフォルト値を変更する場合）:
    ```
-   HUGGINGFACE_MODEL=mistralai/Mistral-7B-Instruct-v0.2
-   HUGGINGFACE_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
-   VECTOR_SEARCH_TOP_K=3
-   VECTOR_SEARCH_THRESHOLD=0.7
+   HUGGINGFACE_MODEL=Qwen/Qwen2.5-7B-Instruct
+   HUGGINGFACE_EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+   VECTOR_SEARCH_TOP_K=5
+   VECTOR_SEARCH_THRESHOLD=0.3
    REQUEST_TIMEOUT=30000
    ```
 

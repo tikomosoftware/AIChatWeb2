@@ -113,7 +113,7 @@ async function main(): Promise<void> {
   }
 
   // 埋め込みモデル（ランタイムと同じモデルを使用すること！）
-  const embeddingModel = process.env.HUGGINGFACE_EMBEDDING_MODEL || 'sentence-transformers/all-MiniLM-L6-v2';
+  const embeddingModel = process.env.HUGGINGFACE_EMBEDDING_MODEL || 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2';
   console.log(`埋め込みモデル: ${embeddingModel}`);
 
   // FAQデータの読み込み

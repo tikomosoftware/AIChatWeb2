@@ -16,7 +16,7 @@ export default function HelpPage() {
   // 現在の設定値（環境変数から動的に取得）
   const currentConfig = {
     llmModel: process.env.HUGGINGFACE_MODEL || 'Qwen/Qwen2.5-7B-Instruct',
-    embeddingModel: process.env.HUGGINGFACE_EMBEDDING_MODEL || 'sentence-transformers/all-MiniLM-L6-v2',
+    embeddingModel: process.env.HUGGINGFACE_EMBEDDING_MODEL || 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
     topK: process.env.VECTOR_SEARCH_TOP_K || '3',
     threshold: process.env.VECTOR_SEARCH_THRESHOLD || '0.3',
     timeout: process.env.REQUEST_TIMEOUT || '30000',
