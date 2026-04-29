@@ -22,7 +22,7 @@ export class LLMService {
 
   /**
    * Generate a response using the LLM
-   * Uses raw fetch to avoid ByteString errors with multi-byte characters (Japanese, etc.)
+   * Uses native https module to avoid Next.js fetch patching issues with multi-byte characters
    */
   async generateResponse(
     query: string,
@@ -37,45 +37,70 @@ export class LLMService {
     const timeout = options.timeout || this.defaultTimeout;
 
     try {
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Request timeout")), timeout);
-      });
-
       const apiUrl = `https://api-inference.huggingface.co/models/${this.modelName}/v1/chat/completions`;
-      const apiPromise = fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: this.modelName,
-          messages: [
-            {
-              role: "system",
-              content: "あなたはワンダーランド東京の親切なFAQアシスタントです。提供されたコンテキスト情報のみを使用して、ユーザーの質問に日本語で正確に回答してください。コンテキストに含まれない情報については「申し訳ございませんが、その情報は持ち合わせておりません」と回答してください。"
-            },
-            {
-              role: "user",
-              content: `以下のコンテキスト情報を参考にして質問に答えてください。\n\nコンテキスト:\n${contextText}\n\n質問: ${query}`
-            }
-          ],
-          max_tokens: options.maxTokens || 512,
-          temperature: options.temperature || 0.7,
-        }),
+      const bodyStr = JSON.stringify({
+        model: this.modelName,
+        messages: [
+          {
+            role: "system",
+            content: "あなたはワンダーランド東京の親切なFAQアシスタントです。提供されたコンテキスト情報のみを使用して、ユーザーの質問に日本語で正確に回答してください。コンテキストに含まれない情報については「申し訳ございませんが、その情報は持ち合わせておりません」と回答してください。"
+          },
+          {
+            role: "user",
+            content: `以下のコンテキスト情報を参考にして質問に答えてください。\n\nコンテキスト:\n${contextText}\n\n質問: ${query}`
+          }
+        ],
+        max_tokens: options.maxTokens || 512,
+        temperature: options.temperature || 0.7,
       });
 
-      const res = await Promise.race([apiPromise, timeoutPromise]);
+      const responseData = await new Promise<string>((resolve, reject) => {
+        const https = require("https");
+        const url = new URL(apiUrl);
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        if (errorText.includes("rate limit") || res.status === 429) {
-          throw new Error("RATE_LIMIT_ERROR");
-        }
-        throw new Error(`Hugging Face API error (${res.status}): ${errorText}`);
-      }
+        const timer = setTimeout(() => {
+          req.destroy();
+          reject(new Error("Request timeout"));
+        }, timeout);
 
-      const response = await res.json();
+        const req = https.request(
+          {
+            hostname: url.hostname,
+            path: url.pathname,
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${this.apiKey}`,
+              "Content-Type": "application/json",
+              "Content-Length": Buffer.byteLength(bodyStr, "utf-8"),
+            },
+          },
+          (res: any) => {
+            let data = "";
+            res.on("data", (chunk: string) => (data += chunk));
+            res.on("end", () => {
+              clearTimeout(timer);
+              if (res.statusCode >= 200 && res.statusCode < 300) {
+                resolve(data);
+              } else {
+                if (res.statusCode === 429 || data.includes("rate limit")) {
+                  reject(new Error("RATE_LIMIT_ERROR"));
+                } else {
+                  reject(new Error(`Hugging Face API error (${res.statusCode}): ${data}`));
+                }
+              }
+            });
+          }
+        );
+
+        req.on("error", (err: Error) => {
+          clearTimeout(timer);
+          reject(err);
+        });
+        req.write(bodyStr);
+        req.end();
+      });
+
+      const response = JSON.parse(responseData);
       const generatedText = response.choices?.[0]?.message?.content || "";
       return generatedText.trim();
     } catch (error) {

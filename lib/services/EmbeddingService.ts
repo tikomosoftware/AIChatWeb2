@@ -14,7 +14,7 @@ export class EmbeddingService {
 
   /**
    * Generate embeddings for a text query
-   * Uses raw fetch to avoid ByteString errors with multi-byte characters (Japanese, etc.)
+   * Uses native https module to avoid Next.js fetch patching issues with multi-byte characters
    */
   async embedQuery(text: string): Promise<number[]> {
     if (!text || text.trim().length === 0) {
@@ -23,22 +23,42 @@ export class EmbeddingService {
 
     try {
       const apiUrl = `https://api-inference.huggingface.co/pipeline/feature-extraction/${this.modelName}`;
-      const res = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ inputs: text }),
+      const bodyStr = JSON.stringify({ inputs: text });
+
+      const response = await new Promise<string>((resolve, reject) => {
+        const https = require("https");
+        const url = new URL(apiUrl);
+
+        const req = https.request(
+          {
+            hostname: url.hostname,
+            path: url.pathname,
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${this.apiKey}`,
+              "Content-Type": "application/json",
+              "Content-Length": Buffer.byteLength(bodyStr, "utf-8"),
+            },
+          },
+          (res: any) => {
+            let data = "";
+            res.on("data", (chunk: string) => (data += chunk));
+            res.on("end", () => {
+              if (res.statusCode >= 200 && res.statusCode < 300) {
+                resolve(data);
+              } else {
+                reject(new Error(`Hugging Face API error (${res.statusCode}): ${data}`));
+              }
+            });
+          }
+        );
+
+        req.on("error", reject);
+        req.write(bodyStr);
+        req.end();
       });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Hugging Face API error (${res.status}): ${errorText}`);
-      }
-
-      const response = await res.json();
-      return response as number[];
+      return JSON.parse(response) as number[];
     } catch (error) {
       console.error("Embedding generation failed:", error);
       throw new Error(`Embedding generation failed: ${error instanceof Error ? error.message : "Unknown error"}`);
