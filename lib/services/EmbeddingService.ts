@@ -22,7 +22,7 @@ export class EmbeddingService {
     }
 
     try {
-      const apiUrl = `https://api-inference.huggingface.co/pipeline/feature-extraction/${this.modelName}`;
+      const apiUrl = `https://api-inference.huggingface.co/models/${this.modelName}`;
       const bodyStr = JSON.stringify({ inputs: text });
 
       const response = await new Promise<string>((resolve, reject) => {
