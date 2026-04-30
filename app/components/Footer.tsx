@@ -10,7 +10,7 @@ export default function Footer() {
             ワンダーランド東京は架空のテーマパークです。FAQデータはAIによって生成された架空の情報です。
           </p>
           <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} RAG技術検証プロジェクト
+            © {new Date().getFullYear()} 探索ベースAI 技術検証プロジェクト
           </p>
         </div>
       </div>

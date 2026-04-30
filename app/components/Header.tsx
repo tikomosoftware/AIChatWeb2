@@ -9,8 +9,8 @@ export default function Header() {
             <Link href="/" className="text-xl font-bold text-gray-900 hover:text-gray-700 transition-colors">
               ワンダーランド東京 FAQ AIチャットボット
             </Link>
-            <span className="ml-3 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-              技術検証用
+            <span className="ml-3 px-2 py-1 text-xs font-medium bg-teal-100 text-teal-800 rounded">
+              探索ベースAI
             </span>
           </div>
           <nav className="flex items-center space-x-6">

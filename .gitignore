@@ -33,9 +33,29 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# chroma db
-# Note: chroma_db is NOT ignored to ensure it's included in Vercel deployment
-# The database is read-only and needs to be part of the build
+# chroma db (migrated to embeddings.json)
+/chroma_db/
+
+# chroma db creation reference
+/CreationOfChromeDBforAIReference/
+
+# debug images
+app/debug_image/
+
+# screenshots
+/Screenshot/
+
+# old documentation (content merged into README)
+DEPLOYMENT_FIX.md
+VOICE_INPUT_FEATURE.md
+
+# old chroma-related scripts
+scripts/check-schema.py
+scripts/export-chroma-data.py
+
+# old specs
+.kiro/specs/ai-chatbot/
+.kiro/specs/chat-history-storage/
 
 # session logs
 SessionLog/

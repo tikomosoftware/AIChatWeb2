@@ -20,7 +20,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         <div
           className={`rounded-lg px-4 py-3 ${
             isUser
-              ? 'bg-blue-600 text-white'
+              ? 'bg-teal-600 text-white'
               : 'bg-gray-100 text-gray-900'
           }`}
         >

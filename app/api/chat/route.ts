@@ -3,7 +3,12 @@ import { EmbeddedVectorSearchService } from "@/lib/services/EmbeddedVectorSearch
 import { EmbeddingService } from "@/lib/services/EmbeddingService";
 import { LLMService } from "@/lib/services/LLMService";
 import { ChatHistoryService } from "@/lib/services/ChatHistoryService";
+import { SearchTool } from "@/lib/services/SearchTool";
+import { QueryAnalyzer } from "@/lib/services/QueryAnalyzer";
+import { ResponseSynthesizer } from "@/lib/services/ResponseSynthesizer";
+import { ReasoningEngine } from "@/lib/services/ReasoningEngine";
 import { ErrorCode, ERROR_MESSAGES } from "@/lib/types/errors";
+import type { ReasoningStep } from "@/lib/types/reasoning";
 
 // Request interface
 interface ChatRequest {
@@ -16,12 +21,25 @@ interface ChatResponse {
   sources?: string[];
   error?: string;
   errorCode?: ErrorCode;
+  reasoning?: ReasoningStep[]; // Only included when DEBUG_MODE is enabled
 }
 
 // Service instances (singleton pattern for reuse)
 let vectorSearchService: EmbeddedVectorSearchService | null = null;
 let embeddingService: EmbeddingService | null = null;
 let llmService: LLMService | null = null;
+let searchTool: SearchTool | null = null;
+let queryAnalyzer: QueryAnalyzer | null = null;
+let responseSynthesizer: ResponseSynthesizer | null = null;
+let reasoningEngine: ReasoningEngine | null = null;
+
+/**
+ * Check if debug mode is enabled via DEBUG_MODE env var
+ */
+function isDebugMode(): boolean {
+  const debugMode = process.env.DEBUG_MODE;
+  return debugMode === "true" || debugMode === "1";
+}
 
 /**
  * Initialize services if not already initialized
@@ -39,6 +57,27 @@ async function initializeServices(): Promise<void> {
 
   if (!llmService) {
     llmService = new LLMService();
+  }
+
+  if (!searchTool) {
+    searchTool = new SearchTool(embeddingService, vectorSearchService);
+  }
+
+  if (!queryAnalyzer) {
+    queryAnalyzer = new QueryAnalyzer(llmService);
+  }
+
+  if (!responseSynthesizer) {
+    responseSynthesizer = new ResponseSynthesizer(llmService);
+  }
+
+  if (!reasoningEngine) {
+    reasoningEngine = new ReasoningEngine({
+      llmService,
+      searchTool,
+      queryAnalyzer,
+      responseSynthesizer,
+    });
   }
 }
 
@@ -110,103 +149,83 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
     } catch (error) {
       console.error("Service initialization failed:", error);
       console.error("Error details:", error instanceof Error ? error.message : String(error));
-      console.error("Stack trace:", error instanceof Error ? error.stack : 'No stack trace');
+      console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace");
       return createErrorResponse(
         ErrorCode.VECTOR_DB_ERROR,
-        `サービスの初期化に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`
+        `サービスの初期化に失敗しました: ${error instanceof Error ? error.message : "不明なエラー"}`
       );
     }
 
-    // Step 1: Vectorize the query
-    let queryEmbedding: number[];
+    // Execute reasoning via ReasoningEngine
+    let result;
     try {
-      queryEmbedding = await embeddingService!.embedQuery(userMessage);
-      console.log(`Query embedding dimensions: ${queryEmbedding.length}`);
-    } catch (error) {
-      console.error("Embedding generation failed:", error);
-      return createErrorResponse(ErrorCode.EMBEDDING_ERROR);
-    }
-
-    // Step 2: Search for relevant documents in vector database
-    let searchResults;
-    let allScores: number[] = [];
-    try {
-      // Get all results without threshold filtering for debugging
-      const vectorService = vectorSearchService!;
-      const config = vectorService.getConfig();
-      
-      // Temporarily search with very low threshold to see all scores
-      searchResults = await vectorService.search(queryEmbedding);
-      
-      console.log(`Search returned ${searchResults.length} results above threshold ${config.scoreThreshold}`);
-      if (searchResults.length > 0) {
-        console.log(`Top 3 scores: ${searchResults.slice(0, 3).map(r => r.score.toFixed(3)).join(', ')}`);
-      }
-    } catch (error) {
-      console.error("Vector search failed:", error);
-      return createErrorResponse(ErrorCode.VECTOR_DB_ERROR);
-    }
-
-    // Step 3: Check similarity scores and filter results
-    if (searchResults.length === 0) {
-      // No relevant data found - return as a special informational response
-      console.log("No results above threshold");
-      return NextResponse.json({
-        response: ERROR_MESSAGES[ErrorCode.NO_RELEVANT_DATA],
-        sources: [],
-        errorCode: ErrorCode.NO_RELEVANT_DATA,
+      result = await reasoningEngine!.reason(userMessage, {
+        maxIterations: 3,
+        timeout: parseInt(process.env.REQUEST_TIMEOUT || "30000"),
       });
-    }
-
-    // Extract documents and sources
-    const contextDocuments = searchResults.map((result) => result.document);
-    const sources = searchResults.map((result, index) => 
-      `[${index + 1}] Score: ${result.score.toFixed(2)}`
-    );
-
-    // Step 4: Generate response using LLM with context
-    let generatedResponse: string;
-    try {
-      const timeout = parseInt(process.env.REQUEST_TIMEOUT || "30000");
-      generatedResponse = await llmService!.generateResponse(
-        userMessage,
-        contextDocuments,
-        { timeout }
-      );
     } catch (error) {
-      console.error("LLM generation failed:", error);
-      
-      // Handle specific error types
+      console.error("ReasoningEngine error:", error);
+
       if (error instanceof Error) {
-        if (error.message === "RATE_LIMIT_ERROR") {
+        if (error.message.includes("RATE_LIMIT_ERROR")) {
           return createErrorResponse(ErrorCode.RATE_LIMIT_ERROR);
         }
-        if (error.message === "TIMEOUT_ERROR") {
+        if (error.message.includes("TIMEOUT_ERROR")) {
           return createErrorResponse(ErrorCode.TIMEOUT_ERROR);
         }
       }
-      
+
       return createErrorResponse(ErrorCode.LLM_ERROR);
     }
 
-    // Step 5: Save chat history (non-blocking, errors logged only)
-    try {
-      const historyService = new ChatHistoryService();
-      // Execute asynchronously without awaiting to avoid blocking response
-      historyService.saveChat(userMessage, generatedResponse).catch(error => {
-        console.error('Failed to save chat history:', error);
-      });
-    } catch (error) {
-      // Log initialization errors but don't affect the response
-      console.error('Failed to initialize chat history service:', error);
+    // Map ReasoningResult to ChatResponse
+    const resultWithError = result as typeof result & { errorCode?: string };
+
+    // Handle error codes from ReasoningEngine
+    if (resultWithError.errorCode) {
+      if (resultWithError.errorCode === ErrorCode.RATE_LIMIT_ERROR) {
+        return createErrorResponse(ErrorCode.RATE_LIMIT_ERROR);
+      }
+
+      if (resultWithError.errorCode === ErrorCode.NO_RELEVANT_DATA) {
+        // Return as informational response (not 500)
+        const chatResponse: ChatResponse = {
+          response: result.answer,
+          sources: result.sources,
+          errorCode: ErrorCode.NO_RELEVANT_DATA,
+        };
+        if (isDebugMode()) {
+          chatResponse.reasoning = result.reasoningSteps;
+        }
+        return NextResponse.json(chatResponse);
+      }
+
+      // Other error codes → LLM_ERROR
+      return createErrorResponse(ErrorCode.LLM_ERROR);
     }
 
-    // Return successful response
-    return NextResponse.json({
-      response: generatedResponse,
-      sources: sources,
-    });
+    // Save chat history (non-blocking, errors logged only)
+    try {
+      const historyService = new ChatHistoryService();
+      historyService.saveChat(userMessage, result.answer).catch((error) => {
+        console.error("Failed to save chat history:", error);
+      });
+    } catch (error) {
+      console.error("Failed to initialize chat history service:", error);
+    }
 
+    // Build successful response
+    const chatResponse: ChatResponse = {
+      response: result.answer,
+      sources: result.sources,
+    };
+
+    // Include reasoning steps only when DEBUG_MODE is enabled
+    if (isDebugMode()) {
+      chatResponse.reasoning = result.reasoningSteps;
+    }
+
+    return NextResponse.json(chatResponse);
   } catch (error) {
     console.error("Unexpected error in chat API:", error);
     return createErrorResponse(

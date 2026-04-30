@@ -1,4 +1,6 @@
-import { HfInference } from "@huggingface/inference";
+import type { LLMProvider } from "@/lib/types/llmProvider";
+import { HuggingFaceProvider } from "@/lib/services/providers/HuggingFaceProvider";
+import { LLMProviderFactory } from "@/lib/services/providers/LLMProviderFactory";
 
 export interface GenerateResponseOptions {
   maxTokens?: number;
@@ -6,19 +8,31 @@ export interface GenerateResponseOptions {
   timeout?: number;
 }
 
+/** システムプロンプト */
+const SYSTEM_PROMPT =
+  "あなたはワンダーランド東京の親切なFAQアシスタントです。提供されたコンテキスト情報のみを使用して、ユーザーの質問に日本語で正確に回答してください。コンテキストに含まれない情報については「申し訳ございませんが、その情報は持ち合わせておりません」と回答してください。";
+
+/**
+ * ユーザープロンプトを構築する
+ */
+function buildUserPrompt(query: string, context: string[]): string {
+  const contextText = context.join("\n\n");
+  return `以下のコンテキスト情報を参考にして質問に答えてください。\n\nコンテキスト:\n${contextText}\n\n質問: ${query}`;
+}
+
 export class LLMService {
-  private client: HfInference;
-  private modelName: string;
+  private provider: LLMProvider;
   private defaultTimeout: number;
 
   constructor(apiKey?: string, modelName?: string) {
-    const key = apiKey || process.env.HUGGINGFACE_API_KEY;
-    if (!key) {
-      throw new Error("Hugging Face API key is required");
+    if (apiKey) {
+      // 明示的にapiKeyが渡された場合はHuggingFaceProviderを使用（後方互換）
+      this.provider = new HuggingFaceProvider(apiKey, modelName);
+    } else {
+      // 環境変数からプロバイダーを自動選択
+      const factory = new LLMProviderFactory();
+      this.provider = factory.createFromEnv();
     }
-
-    this.client = new HfInference(key);
-    this.modelName = modelName || process.env.HUGGINGFACE_MODEL || "Qwen/Qwen2.5-7B-Instruct";
     this.defaultTimeout = parseInt(process.env.REQUEST_TIMEOUT || "30000");
   }
 
@@ -31,7 +45,6 @@ export class LLMService {
       throw new Error("Query cannot be empty");
     }
 
-    const contextText = context.join("\n\n");
     const timeout = options.timeout || this.defaultTimeout;
 
     try {
@@ -39,29 +52,25 @@ export class LLMService {
         setTimeout(() => reject(new Error("Request timeout")), timeout);
       });
 
-      const apiPromise = this.client.chatCompletion({
-        model: this.modelName,
+      const apiPromise = this.provider.chatCompletion({
         messages: [
-          {
-            role: "system",
-            content: "あなたはワンダーランド東京の親切なFAQアシスタントです。提供されたコンテキスト情報のみを使用して、ユーザーの質問に日本語で正確に回答してください。コンテキストに含まれない情報については「申し訳ございませんが、その情報は持ち合わせておりません」と回答してください。"
-          },
-          {
-            role: "user",
-            content: `以下のコンテキスト情報を参考にして質問に答えてください。\n\nコンテキスト:\n${contextText}\n\n質問: ${query}`
-          }
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: buildUserPrompt(query, context) },
         ],
-        max_tokens: options.maxTokens || 512,
+        maxTokens: options.maxTokens || 512,
         temperature: options.temperature || 0.7,
       });
 
-      const response = await Promise.race([apiPromise, timeoutPromise]);
+      const result = await Promise.race([apiPromise, timeoutPromise]);
 
-      const generatedText = response.choices[0]?.message?.content || "";
-      return generatedText.trim();
+      return result.content.trim();
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message.includes("rate limit") || error.message.includes("429")) {
+        if (
+          error.message.includes("rate limit") ||
+          error.message.includes("429") ||
+          error.message === "RATE_LIMIT_ERROR"
+        ) {
           throw new Error("RATE_LIMIT_ERROR");
         }
         if (error.message.includes("timeout")) {
@@ -70,11 +79,17 @@ export class LLMService {
       }
 
       console.error("LLM generation failed:", error);
-      throw new Error(`LLM generation failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `LLM generation failed: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     }
   }
 
   getModelName(): string {
-    return this.modelName;
+    return this.provider.getModelName();
+  }
+
+  getProviderName(): string {
+    return this.provider.getProviderName();
   }
 }

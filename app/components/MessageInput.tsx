@@ -70,11 +70,11 @@ export default function MessageInput({ onSend, disabled }: MessageInputProps) {
 
       {/* 音声認識中のインジケーター */}
       {isListening && (
-        <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-center gap-2">
+        <div className="mb-2 p-2 bg-teal-50 border border-teal-200 rounded-lg text-sm text-teal-700 flex items-center gap-2">
           <div className="flex gap-1">
-            <span className="w-1 h-4 bg-blue-500 animate-pulse" style={{ animationDelay: '0ms' }}></span>
-            <span className="w-1 h-4 bg-blue-500 animate-pulse" style={{ animationDelay: '150ms' }}></span>
-            <span className="w-1 h-4 bg-blue-500 animate-pulse" style={{ animationDelay: '300ms' }}></span>
+            <span className="w-1 h-4 bg-teal-500 animate-pulse" style={{ animationDelay: '0ms' }}></span>
+            <span className="w-1 h-4 bg-teal-500 animate-pulse" style={{ animationDelay: '150ms' }}></span>
+            <span className="w-1 h-4 bg-teal-500 animate-pulse" style={{ animationDelay: '300ms' }}></span>
           </div>
           <span>音声を認識中...</span>
         </div>
@@ -87,7 +87,7 @@ export default function MessageInput({ onSend, disabled }: MessageInputProps) {
           onKeyPress={handleKeyPress}
           placeholder="メッセージを入力..."
           disabled={disabled || isListening}
-          className="flex-1 resize-none rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="flex-1 resize-none rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
           rows={1}
         />
         
@@ -118,7 +118,7 @@ export default function MessageInput({ onSend, disabled }: MessageInputProps) {
         <button
           onClick={handleSend}
           disabled={disabled || !input.trim()}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
           送信
         </button>

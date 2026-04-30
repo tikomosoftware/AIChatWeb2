@@ -4,9 +4,9 @@ import Footer from './components/Footer';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'ワンダーランド東京 FAQ AIチャットボット - 技術検証用',
-  description: 'RAG技術を使用したFAQ AIチャットボット。ワンダーランド東京のFAQ情報を元に質問に回答します。',
-  keywords: ['ワンダーランド東京', 'AI', 'Chatbot', 'RAG', 'FAQ', '技術検証'],
+  title: 'ワンダーランド東京 FAQ AIチャットボット - 探索ベースAI',
+  description: 'ReAct推論パターンに基づく探索ベースAIチャットボット。ワンダーランド東京のFAQ情報を元に多段階推論で質問に回答します。',
+  keywords: ['ワンダーランド東京', 'AI', 'Chatbot', 'ReAct', 'RAG', 'FAQ', '探索ベースAI'],
 };
 
 export default function Home() {

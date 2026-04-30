@@ -112,9 +112,9 @@ export default function ChatInterface() {
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
       {/* ヘッダー */}
-      <div className="bg-blue-600 text-white p-4 rounded-t-lg shadow-md">
+      <div className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white p-4 rounded-t-lg shadow-md">
         <h1 className="text-xl font-bold">ワンダーランド東京 FAQ AIチャットボット</h1>
-        <p className="text-sm text-blue-100">ワンダーランド東京に関する質問にお答えします</p>
+        <p className="text-sm text-teal-100">ReAct推論でワンダーランド東京に関する質問にお答えします</p>
       </div>
 
       {/* メッセージリストまたはウェルカムメッセージ */}
@@ -130,9 +130,9 @@ export default function ChatInterface() {
               </p>
             </div>
 
-            <div className="bg-blue-50 rounded-lg p-6">
+            <div className="bg-teal-50 rounded-lg p-6">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="text-blue-600 mr-2">💡</span>
+                <span className="text-teal-600 mr-2">💡</span>
                 サンプル質問
               </h3>
               <p className="text-sm text-gray-600 mb-4">
@@ -144,7 +144,7 @@ export default function ChatInterface() {
                     key={index}
                     onClick={() => handleSendMessage(question)}
                     disabled={chatState.isLoading}
-                    className="w-full text-left px-4 py-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full text-left px-4 py-3 bg-white rounded-lg border border-gray-200 hover:border-teal-400 hover:bg-teal-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span className="text-gray-700">{question}</span>
                   </button>
@@ -168,7 +168,7 @@ export default function ChatInterface() {
       {chatState.isLoading && (
         <div className="px-4 py-2 text-center">
           <div className="inline-flex items-center gap-2 text-gray-600">
-            <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+            <div className="animate-spin h-4 w-4 border-2 border-teal-600 border-t-transparent rounded-full"></div>
             <span>回答を生成中...</span>
           </div>
         </div>
