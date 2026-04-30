@@ -36,3 +36,6 @@ next-env.d.ts
 # chroma db
 # Note: chroma_db is NOT ignored to ensure it's included in Vercel deployment
 # The database is read-only and needs to be part of the build
+
+# session logs
+SessionLog/
